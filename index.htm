@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Weather Compare – Last 24 Hours</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f4f4f4; }
+    tr:nth-child(even) { background: #fafafa; }
+  </style>
+</head>
+<body>
+  <h1>Weather Readings – Last 24 Hours</h1>
+  <table id="data">
+    <thead>
+      <tr>
+        <th>Time (UTC)</th>
+        <th>Location</th>
+        <th>Temp (°F)</th>
+        <th>Humidity %</th>
+        <th>Cloud Cover %</th>
+        <th>Precip (mm)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    fetch('export_last_24h.json')
+      .then(r => r.json())
+      .then(data => {
+        const tbody = document.querySelector('#data tbody');
+        data.forEach(row => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${row.UTC}</td>
+              <td>${row.LocationName}</td>
+              <td>${row.CurrentTemp}</td>
+              <td>${row.RelativeHumidity}</td>
+              <td>${row.CloudCover}</td>
+              <td>${row.Precipitation}</td>
+            </tr>`;
+        });
+      });
+  </script>
+</body>
+</html>
