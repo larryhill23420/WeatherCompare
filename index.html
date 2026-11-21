@@ -7,7 +7,6 @@
     table { border-collapse: collapse; width: 100%; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     th { background: #f4f4f4; }
-    tr:nth-child(even) { background: #fafafa; }
   </style>
 </head>
 <body>
@@ -15,34 +14,37 @@
   <table id="data">
     <thead>
       <tr>
+        <th>Zip</th>
+        <th>Place</th>
         <th>Time (UTC)</th>
-        <th>Location</th>
         <th>Temp (°F)</th>
         <th>Humidity %</th>
-        <th>Cloud Cover %</th>
-        <th>Precip (mm)</th>
+        <th>Cloud %</th>
+        <th>Precip</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
   <script>
-    fetch('export_last_24h.py')
+    fetch('https://p62mmdnwzy9gr6c1.twk.lambda-web.us-west-2.on.aws/')
       .then(r => r.json())
       .then(data => {
         const tbody = document.querySelector('#data tbody');
         data.forEach(row => {
           tbody.innerHTML += `
             <tr>
-              <td>${row.UTC}</td>
-              <td>${row.LocationName}</td>
-              <td>${row.CurrentTemp}</td>
-              <td>${row.RelativeHumidity}</td>
-              <td>${row.CloudCover}</td>
-              <td>${row.Precipitation}</td>
+              <td>${row.ZipCode || ''}</td>
+              <td>${row.PlaceName || ''}</td>
+              <td>${row.DateTime || ''}</td>
+              <td>${row.Temperature || ''}</td>
+              <td>${row.Humidity || ''}</td>
+              <td>${row.CloudCover || ''}</td>
+              <td>${row.Precipitation || ''}</td>
             </tr>`;
         });
-      });
+      })
+      .catch(err => console.error(err));
   </script>
 </body>
 </html>

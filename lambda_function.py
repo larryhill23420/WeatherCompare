@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table("WeatherReadings")
+table = dynamodb.Table("Reading")
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -16,13 +16,13 @@ def lambda_handler(event, context):
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     response = table.scan(
-        FilterExpression="#utc >= :cutoff",
-        ExpressionAttributeNames={"#utc": "UTC"},
+        FilterExpression="#dt >= :cutoff",
+        ExpressionAttributeNames={"#dt": "DateTime"},
         ExpressionAttributeValues={":cutoff": cutoff},
     )
 
     items = response.get("Items", [])
-    items.sort(key=lambda x: x.get("UTC", ""))
+    items.sort(key=lambda x: (x.get("ZipCode", ""), x.get("DateTime", "")))
 
     return {
         "statusCode": 200,
