@@ -11,6 +11,7 @@
     tr.zip2 { background: #f0f0f0; }
     .controls { margin-bottom: 1rem; }
     select, button { padding: 6px 10px; margin-right: 8px; }
+    .time-header { background: #e8e8e8; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -32,29 +33,23 @@
     <thead>
       <tr>
         <th>Local Time</th>
-        <th>Zip 1</th>
-        <th>Place 1</th>
-        <th>Temp 1</th>
+        <th>Zip</th>
+        <th>Place Name</th>
+        <th>Temp</th>
         <th>Temp Diff</th>
-        <th>Rain 1</th>
+        <th>Rain</th>
         <th>Rain Diff</th>
-        <th>Humid 1</th>
+        <th>Humid</th>
         <th>Humid Diff</th>
-        <th>Cloud 1</th>
+        <th>Cloud</th>
         <th>Cloud Diff</th>
-        <th>Zip 2</th>
-        <th>Place 2</th>
-        <th>Temp 2</th>
-        <th>Rain 2</th>
-        <th>Humid 2</th>
-        <th>Cloud 2</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
   <script>
-    const FUNCTION_URL = "https://ocw3et6rrpypcwcoeaj7gqzliy0oksgx.lambda-url.us-west-2.on.aws/";
+    const FUNCTION_URL = "https://YOUR-FUNCTION-URL.lambda-url.us-west-2.on.aws/";
 
     function compare() {
       const zip1 = document.getElementById("zip1").value;
@@ -66,10 +61,16 @@
         .then(r => r.json())
         .then(rows => {
           rows.forEach(row => {
+            // Time separator row
+            tbody.innerHTML += `
+              <tr class="time-header">
+                <td colspan="11">${row.LocalTime || ""}</td>
+              </tr>`;
+
             // Zip1 row (white)
             tbody.innerHTML += `
               <tr class="zip1">
-                <td>${row.LocalTime || ""}</td>
+                <td></td>
                 <td>${row.ZipCode1 || ""}</td>
                 <td>${row.PlaceName1 || ""}</td>
                 <td>${row.Temp1 ?? ""}</td>
@@ -80,19 +81,22 @@
                 <td>${row.HumidDiff ?? ""}</td>
                 <td>${row.Cloud1 ?? ""}</td>
                 <td>${row.CloudDiff ?? ""}</td>
-                <td></td><td></td><td></td><td></td><td></td><td></td>
               </tr>`;
+
             // Zip2 row (light gray)
             tbody.innerHTML += `
               <tr class="zip2">
                 <td></td>
-                <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                 <td>${row.ZipCode2 || ""}</td>
                 <td>${row.PlaceName2 || ""}</td>
                 <td>${row.Temp2 ?? ""}</td>
+                <td>${row.TempDiff ? -row.TempDiff : ""}</td>
                 <td>${row.Rain2 ?? ""}</td>
+                <td>${row.RainDiff ? -row.RainDiff : ""}</td>
                 <td>${row.Humid2 ?? ""}</td>
+                <td>${row.HumidDiff ? -row.HumidDiff : ""}</td>
                 <td>${row.Cloud2 ?? ""}</td>
+                <td>${row.CloudDiff ? -row.CloudDiff : ""}</td>
               </tr>`;
           });
         })
