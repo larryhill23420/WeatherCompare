@@ -9,14 +9,28 @@
     th { background: #f4f4f4; }
     tr.zip1 { background: white; }
     tr.zip2 { background: #f0f0f0; }
-    .controls { margin-bottom: 1rem; }
-    select, button { padding: 6px 10px; margin-right: 8px; }
+    .controls, .add-form { margin-bottom: 1.5rem; }
+    select, button, input { padding: 6px 10px; margin-right: 8px; }
     .time-header { background: #e8e8e8; font-weight: bold; }
+    #add-status { margin-left: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
   <h1>Weather Compare</h1>
 
+  <!-- Add Zip Code -->
+  <div class="add-form">
+    <h3>Add New Zip Code</h3>
+    <input type="text" id="new-zip" placeholder="Zip code" maxlength="5">
+    <select id="add-days">
+      <option value="1">1 day</option>
+      <option value="7" selected>7 days</option>
+    </select>
+    <button onclick="addZip()">Add Zip Code</button>
+    <span id="add-status"></span>
+  </div>
+
+  <!-- Compare -->
   <div class="controls">
     <select id="zip1">
       <option value="98593">Vader, WA (98593)</option>
@@ -58,7 +72,32 @@
   </table>
 
   <script>
-    const FUNCTION_URL = "https://ocw3et6rrpypcwcoeaj7gqzliy0oksgx.lambda-url.us-west-2.on.aws/";
+    const COMPARE_URL = "https://ocw3et6rrpypcwcoeaj7gqzliy0oksgx.lambda-url.us-west-2.on.aws/";
+    const ADD_ZIP_URL = "https://ibaykpce4noeovznl5taqqqn2a0zeyuv.lambda-url.us-west-2.on.aws/";
+
+    function addZip() {
+      const zip = document.getElementById("new-zip").value.trim();
+      const days = document.getElementById("add-days").value;
+      const status = document.getElementById("add-status");
+      status.textContent = "Adding...";
+
+      fetch(`${ADD_ZIP_URL}?zip=${zip}&days=${days}`)
+        .then(r => r.json())
+        .then(result => {
+          if (result.success) {
+            status.textContent = `Added ${result.place_name} (${result.readings_inserted} readings)`;
+            status.style.color = "green";
+            // Optionally refresh dropdowns here later
+          } else {
+            status.textContent = result.error || "Failed";
+            status.style.color = "red";
+          }
+        })
+        .catch(err => {
+          status.textContent = "Error: " + err;
+          status.style.color = "red";
+        });
+    }
 
     function compare() {
       const zip1 = document.getElementById("zip1").value;
@@ -67,12 +106,11 @@
       const tbody = document.querySelector("#data tbody");
       tbody.innerHTML = "";
 
-      fetch(`${FUNCTION_URL}?zip1=${zip1}&zip2=${zip2}&days=${days}`)
+      fetch(`${COMPARE_URL}?zip1=${zip1}&zip2=${zip2}&days=${days}`)
         .then(r => r.json())
         .then(rows => {
-                    rows.forEach(row => {
-            const fmt = (n) => (n > 0 ? "+" + n : n);
-
+          const fmt = (n) => (n > 0 ? "+" + n : n);
+          rows.forEach(row => {
             tbody.innerHTML += `
               <tr class="time-header">
                 <td colspan="11">${row.LocalTime || ""}</td>
