@@ -26,6 +26,15 @@
       <option value="19422">Blue Bell, PA (19422)</option>
       <option value="98593">Vader, WA (98593)</option>
     </select>
+    <select id="days">
+      <option value="1" selected>1 day</option>
+      <option value="2">2 days</option>
+      <option value="3">3 days</option>
+      <option value="4">4 days</option>
+      <option value="5">5 days</option>
+      <option value="6">6 days</option>
+      <option value="7">7 days</option>
+    </select>
     <button onclick="compare()">Compare Weather</button>
   </div>
 
@@ -54,20 +63,18 @@
     function compare() {
       const zip1 = document.getElementById("zip1").value;
       const zip2 = document.getElementById("zip2").value;
+      const days = document.getElementById("days").value;
       const tbody = document.querySelector("#data tbody");
       tbody.innerHTML = "";
 
-      fetch(`${FUNCTION_URL}?zip1=${zip1}&zip2=${zip2}`)
+      fetch(`${FUNCTION_URL}?zip1=${zip1}&zip2=${zip2}&days=${days}`)
         .then(r => r.json())
         .then(rows => {
           rows.forEach(row => {
-            // Time separator row
             tbody.innerHTML += `
               <tr class="time-header">
                 <td colspan="11">${row.LocalTime || ""}</td>
               </tr>`;
-
-            // Zip1 row (white)
             tbody.innerHTML += `
               <tr class="zip1">
                 <td></td>
@@ -82,8 +89,6 @@
                 <td>${row.Cloud1 ?? ""}</td>
                 <td>${row.CloudDiff ?? ""}</td>
               </tr>`;
-
-            // Zip2 row (light gray)
             tbody.innerHTML += `
               <tr class="zip2">
                 <td></td>

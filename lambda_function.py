@@ -8,10 +8,9 @@ dynamodb = boto3.resource("dynamodb")
 reading_table = dynamodb.Table("Reading")
 zip_table = dynamodb.Table("ZipCode")
 
-# Hard-coded offsets (hours from UTC)
 OFFSETS = {
-    "98593": -8,   # Vader, WA (Pacific)
-    "19422": -5,   # Blue Bell, PA (Eastern)
+    "98593": -8,   # Vader, WA
+    "19422": -5,   # Blue Bell, PA
 }
 
 class DecimalEncoder(json.JSONEncoder):
@@ -34,15 +33,17 @@ def lambda_handler(event, context):
     params = event.get("queryStringParameters") or {}
     zip1 = params.get("zip1")
     zip2 = params.get("zip2")
+    days = int(params.get("days", "1"))
+    days = max(1, min(days, 7))  # clamp 1-7
 
     if not zip1 or not zip2:
         return {
             "statusCode": 400,
             "headers": {"Access-Control-Allow-Origin": "*"},
-            "body": json.dumps({"error": "zip1 and zip2 query parameters are required"})
+            "body": json.dumps({"error": "zip1 and zip2 are required"})
         }
 
-    cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def fetch(zip_code):
         resp = reading_table.scan(
@@ -60,12 +61,13 @@ def lambda_handler(event, context):
     place1 = get_place_name(zip1)
     place2 = get_place_name(zip2)
 
-    all_local_times = sorted(set(data1.keys()) | set(data2.keys()))
+    # Only keep times where BOTH zips have data
+    common_times = sorted(set(data1.keys()) & set(data2.keys()))
 
     rows = []
-    for local_dt in all_local_times:
-        r1 = data1.get(local_dt, {})
-        r2 = data2.get(local_dt, {})
+    for local_dt in common_times:
+        r1 = data1[local_dt]
+        r2 = data2[local_dt]
 
         t1 = float(r1.get("Temperature", 0))
         t2 = float(r2.get("Temperature", 0))
@@ -78,22 +80,13 @@ def lambda_handler(event, context):
 
         rows.append({
             "LocalTime": local_dt,
-            "ZipCode1": zip1,
-            "PlaceName1": place1,
-            "Temp1": t1,
-            "TempDiff": round(t1 - t2, 1),
-            "Rain1": p1,
-            "RainDiff": round(p1 - p2, 2),
-            "Humid1": h1,
-            "HumidDiff": round(h1 - h2, 1),
-            "Cloud1": c1,
-            "CloudDiff": round(c1 - c2, 1),
-            "ZipCode2": zip2,
-            "PlaceName2": place2,
-            "Temp2": t2,
-            "Rain2": p2,
-            "Humid2": h2,
-            "Cloud2": c2,
+            "ZipCode1": zip1, "PlaceName1": place1,
+            "Temp1": t1, "TempDiff": round(t1 - t2, 1),
+            "Rain1": p1, "RainDiff": round(p1 - p2, 2),
+            "Humid1": h1, "HumidDiff": round(h1 - h2, 1),
+            "Cloud1": c1, "CloudDiff": round(c1 - c2, 1),
+            "ZipCode2": zip2, "PlaceName2": place2,
+            "Temp2": t2, "Rain2": p2, "Humid2": h2, "Cloud2": c2,
         })
 
     return {
