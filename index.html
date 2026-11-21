@@ -27,7 +27,7 @@
   </table>
 
   <script>
-    fetch('export_last_24h.json')
+    fetch('export_last_24h.py')
       .then(r => r.json())
       .then(data => {
         const tbody = document.querySelector('#data tbody');
