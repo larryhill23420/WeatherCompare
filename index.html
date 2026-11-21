@@ -1,50 +1,103 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Weather Compare – Last 24 Hours</title>
+  <title>Weather Compare</title>
   <style>
     body { font-family: system-ui, sans-serif; margin: 2rem; }
-    table { border-collapse: collapse; width: 100%; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     th { background: #f4f4f4; }
+    tr.zip1 { background: white; }
+    tr.zip2 { background: #f0f0f0; }
+    .controls { margin-bottom: 1rem; }
+    select, button { padding: 6px 10px; margin-right: 8px; }
   </style>
 </head>
 <body>
-  <h1>Weather Readings – Last 24 Hours</h1>
+  <h1>Weather Compare</h1>
+
+  <div class="controls">
+    <select id="zip1">
+      <option value="98593">Vader, WA (98593)</option>
+      <option value="19422">Blue Bell, PA (19422)</option>
+    </select>
+    <select id="zip2">
+      <option value="19422">Blue Bell, PA (19422)</option>
+      <option value="98593">Vader, WA (98593)</option>
+    </select>
+    <button onclick="compare()">Compare Weather</button>
+  </div>
+
   <table id="data">
     <thead>
       <tr>
-        <th>Zip</th>
-        <th>Place</th>
-        <th>Time (UTC)</th>
-        <th>Temp (°F)</th>
-        <th>Humidity %</th>
-        <th>Cloud %</th>
-        <th>Precip</th>
+        <th>Local Time</th>
+        <th>Zip 1</th>
+        <th>Place 1</th>
+        <th>Temp 1</th>
+        <th>Temp Diff</th>
+        <th>Rain 1</th>
+        <th>Rain Diff</th>
+        <th>Humid 1</th>
+        <th>Humid Diff</th>
+        <th>Cloud 1</th>
+        <th>Cloud Diff</th>
+        <th>Zip 2</th>
+        <th>Place 2</th>
+        <th>Temp 2</th>
+        <th>Rain 2</th>
+        <th>Humid 2</th>
+        <th>Cloud 2</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
   <script>
-    fetch('https://ocw3et6rrpypcwcoeaj7gqzliy0oksgx.lambda-url.us-west-2.on.aws/')
-      .then(r => r.json())
-      .then(data => {
-        const tbody = document.querySelector('#data tbody');
-        data.forEach(row => {
-          tbody.innerHTML += `
-            <tr>
-              <td>${row.ZipCode || ''}</td>
-              <td>${row.PlaceName || ''}</td>
-              <td>${row.DateTime || ''}</td>
-              <td>${row.Temperature || ''}</td>
-              <td>${row.Humidity || ''}</td>
-              <td>${row.CloudCover || ''}</td>
-              <td>${row.Precipitation || ''}</td>
-            </tr>`;
-        });
-      })
-      .catch(err => console.error(err));
+    const FUNCTION_URL = "https://ocw3et6rrpypcwcoeaj7gqzliy0oksgx.lambda-url.us-west-2.on.aws/";
+
+    function compare() {
+      const zip1 = document.getElementById("zip1").value;
+      const zip2 = document.getElementById("zip2").value;
+      const tbody = document.querySelector("#data tbody");
+      tbody.innerHTML = "";
+
+      fetch(`${FUNCTION_URL}?zip1=${zip1}&zip2=${zip2}`)
+        .then(r => r.json())
+        .then(rows => {
+          rows.forEach(row => {
+            // Zip1 row (white)
+            tbody.innerHTML += `
+              <tr class="zip1">
+                <td>${row.LocalTime || ""}</td>
+                <td>${row.ZipCode1 || ""}</td>
+                <td>${row.PlaceName1 || ""}</td>
+                <td>${row.Temp1 ?? ""}</td>
+                <td>${row.TempDiff ?? ""}</td>
+                <td>${row.Rain1 ?? ""}</td>
+                <td>${row.RainDiff ?? ""}</td>
+                <td>${row.Humid1 ?? ""}</td>
+                <td>${row.HumidDiff ?? ""}</td>
+                <td>${row.Cloud1 ?? ""}</td>
+                <td>${row.CloudDiff ?? ""}</td>
+                <td></td><td></td><td></td><td></td><td></td><td></td>
+              </tr>`;
+            // Zip2 row (light gray)
+            tbody.innerHTML += `
+              <tr class="zip2">
+                <td></td>
+                <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                <td>${row.ZipCode2 || ""}</td>
+                <td>${row.PlaceName2 || ""}</td>
+                <td>${row.Temp2 ?? ""}</td>
+                <td>${row.Rain2 ?? ""}</td>
+                <td>${row.Humid2 ?? ""}</td>
+                <td>${row.Cloud2 ?? ""}</td>
+              </tr>`;
+          });
+        })
+        .catch(err => console.error(err));
+    }
   </script>
 </body>
 </html>
