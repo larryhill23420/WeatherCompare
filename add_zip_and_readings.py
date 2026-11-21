@@ -52,9 +52,9 @@ def add_zip_and_backfill(zip_code: str):
     })
     print(f"Inserted ZipCode: {zip_code} - {place_name}")
 
-    # 4. Backfill readings from midnight 2026-11-21 through current hour
+    # 4. Backfill readings for the last 7 days through current hour
     now = datetime.now(timezone.utc)
-    start = datetime(2026, 11, 21, 0, 0, 0, tzinfo=timezone.utc)
+    start = (now - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
     current = start
 
     while current <= now:
@@ -82,13 +82,8 @@ def add_zip_and_backfill(zip_code: str):
             clouds = hourly.get("cloud_cover", [])
             precips = hourly.get("precipitation", [])
 
-            # Find the index that matches our target hour
             target = dt_str[:13]  # "2026-11-21T19"
             idx = next((i for i, t in enumerate(times) if t.startswith(target)), None)
-            
-            print(f"DEBUG {dt_str}  idx={idx}  times_sample={times[:2] if times else None}")
-            if idx is None:
-                print(f"DEBUG no match for {target}")
 
             if idx is None or not temps:
                 raise ValueError(f"No data for hour {dt_str}")
