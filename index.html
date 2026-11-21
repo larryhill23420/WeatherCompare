@@ -70,7 +70,9 @@
       fetch(`${FUNCTION_URL}?zip1=${zip1}&zip2=${zip2}&days=${days}`)
         .then(r => r.json())
         .then(rows => {
-          rows.forEach(row => {
+                    rows.forEach(row => {
+            const fmt = (n) => (n > 0 ? "+" + n : n);
+
             tbody.innerHTML += `
               <tr class="time-header">
                 <td colspan="11">${row.LocalTime || ""}</td>
@@ -81,13 +83,13 @@
                 <td>${row.ZipCode1 || ""}</td>
                 <td>${row.PlaceName1 || ""}</td>
                 <td>${row.Temp1 ?? ""}</td>
-                <td>${row.TempDiff ?? ""}</td>
+                <td>${fmt(row.TempDiff)}</td>
                 <td>${row.Rain1 ?? ""}</td>
-                <td>${row.RainDiff ?? ""}</td>
+                <td>${fmt(row.RainDiff)}</td>
                 <td>${row.Humid1 ?? ""}</td>
-                <td>${row.HumidDiff ?? ""}</td>
+                <td>${fmt(row.HumidDiff)}</td>
                 <td>${row.Cloud1 ?? ""}</td>
-                <td>${row.CloudDiff ?? ""}</td>
+                <td>${fmt(row.CloudDiff)}</td>
               </tr>`;
             tbody.innerHTML += `
               <tr class="zip2">
@@ -95,13 +97,13 @@
                 <td>${row.ZipCode2 || ""}</td>
                 <td>${row.PlaceName2 || ""}</td>
                 <td>${row.Temp2 ?? ""}</td>
-                <td>${row.TempDiff ? -row.TempDiff : ""}</td>
+                <td>${fmt(-row.TempDiff)}</td>
                 <td>${row.Rain2 ?? ""}</td>
-                <td>${row.RainDiff ? -row.RainDiff : ""}</td>
+                <td>${fmt(-row.RainDiff)}</td>
                 <td>${row.Humid2 ?? ""}</td>
-                <td>${row.HumidDiff ? -row.HumidDiff : ""}</td>
+                <td>${fmt(-row.HumidDiff)}</td>
                 <td>${row.Cloud2 ?? ""}</td>
-                <td>${row.CloudDiff ? -row.CloudDiff : ""}</td>
+                <td>${fmt(-row.CloudDiff)}</td>
               </tr>`;
           });
         })
