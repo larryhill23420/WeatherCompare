@@ -1,28 +1,37 @@
 import json
 import boto3
+from datetime import datetime, timezone
+from decimal import Decimal
 from kafka import KafkaConsumer
 
 dynamodb = boto3.resource("dynamodb", region_name="us-west-2")
-table = dynamodb.Table("WeatherReadings")
+reading_table = dynamodb.Table("Reading")
 
 consumer = KafkaConsumer(
     "weather-readings",
     bootstrap_servers=["kafka:9092"],
     value_deserializer=lambda m: json.loads(m.decode("utf-8")),
-    auto_offset_reset="earliest",
+    auto_offset_reset="latest",
     group_id="weather-ingest",
 )
 
+def now_iso():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
 for message in consumer:
     item = message.value
-    # DynamoDB wants numbers as strings in the low-level format, but boto3 resource accepts natives
-    table.put_item(Item={
-        "Zip_UTC": item["Zip_UTC"],
-        "UTC": item["UTC"],
-        "LocationName": item["LocationName"],
-        "CurrentTemp": str(item["CurrentTemp"]),
-        "RelativeHumidity": str(item["RelativeHumidity"]),
-        "CloudCover": str(item["CloudCover"]),
-        "Precipitation": str(item["Precipitation"]),
-    })
-    print(f"Inserted {item['Zip_UTC']}")
+    try:
+        reading_table.put_item(Item={
+            "Zip_DateTime": item["Zip_DateTime"],
+            "DateTime": item["DateTime"],
+            "ZipCode": item["ZipCode"],
+            "PlaceName": item["PlaceName"],
+            "Temperature": Decimal(str(round(item["Temperature"]))),
+            "Precipitation": Decimal(str(item["Precipitation"])),
+            "Humidity": Decimal(str(round(item["Humidity"]))),
+            "CloudCover": Decimal(str(round(item["CloudCover"]))),
+            "InsertedAt": now_iso(),
+        })
+        print(f"Inserted {item['Zip_DateTime']}")
+    except Exception as e:
+        print(f"Consumer error: {e}")

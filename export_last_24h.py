@@ -1,38 +1,29 @@
 import boto3
 import json
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 dynamodb = boto3.resource("dynamodb", region_name="us-west-2")
-table = dynamodb.Table("WeatherReadings")
+table = dynamodb.Table("Reading")
 
-# Last 24 hours in UTC
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
+
 cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 response = table.scan(
-    FilterExpression="#utc >= :cutoff",
-    ExpressionAttributeNames={"#utc": "UTC"},
+    FilterExpression="#dt >= :cutoff",
+    ExpressionAttributeNames={"#dt": "DateTime"},
     ExpressionAttributeValues={":cutoff": cutoff},
 )
 
 items = response.get("Items", [])
-
-# Clean up for readability (optional)
-clean = []
-for item in items:
-    clean.append({
-        "Zip_UTC": item.get("Zip_UTC"),
-        "UTC": item.get("UTC"),
-        "LocationName": item.get("LocationName"),
-        "CurrentTemp": float(item.get("CurrentTemp", 0)),
-        "RelativeHumidity": float(item.get("RelativeHumidity", 0)),
-        "CloudCover": float(item.get("CloudCover", 0)),
-        "Precipitation": float(item.get("Precipitation", 0)),
-    })
-
-# Sort by time
-clean.sort(key=lambda x: x["UTC"])
+items.sort(key=lambda x: (x.get("ZipCode", ""), x.get("DateTime", "")))
 
 with open("last_24h.json", "w") as f:
-    json.dump(clean, f, indent=2)
+    json.dump(items, f, indent=2, cls=DecimalEncoder)
 
-print(f"Wrote {len(clean)} readings to last_24h.json")
+print(f"Wrote {len(items)} readings to last_24h.json")

@@ -1,0 +1,80 @@
+{
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "PlaceName",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "ZipCode",
+      "AttributeType": "S"
+    }
+  ],
+  "TableName": "ZipCode",
+  "KeySchema": [
+    {
+      "AttributeName": "ZipCode",
+      "KeyType": "HASH"
+    },
+    {
+      "AttributeName": "PlaceName",
+      "KeyType": "RANGE"
+    }
+  ],
+  --InsertedAt String
+  
+}
+
+{
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "DateTime",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "Zip_DateTime",
+      "AttributeType": "S"
+    }
+  ],
+  "TableName": "Reading",
+  "KeySchema": [
+    {
+      "AttributeName": "Zip_DateTime",
+      "KeyType": "HASH"
+    },
+    {
+      "AttributeName": "DateTime",
+      "KeyType": "RANGE"
+    }
+  ],
+--Additional Attributes
+--Temperature Number Int
+--Precipitation Number Float
+--Humidity Number Int
+--CloudCover Number Int
+--InsertedAt String
+
+{
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "UUID",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "Zip_DateTime",
+      "AttributeType": "S"
+    }
+  ],
+  "TableName": "Error",
+  "KeySchema": [
+    {
+      "AttributeName": "UUID",
+      "KeyType": "HASH"
+    },
+    {
+      "AttributeName": "Zip_DateTime",
+      "KeyType": "RANGE"
+    }
+  ],
+  --Additional Attributes
+  --InsertedAt String
+  

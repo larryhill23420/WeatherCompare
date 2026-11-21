@@ -22,6 +22,9 @@ services:
   producer:
     build: .
     command: python producer.py
+    env_file: .env
+    environment:
+      - AWS_DEFAULT_REGION=us-west-2
     depends_on:
       - kafka
     restart: unless-stopped
