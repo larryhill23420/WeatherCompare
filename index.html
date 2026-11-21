@@ -75,7 +75,7 @@
     const COMPARE_URL = "https://ocw3et6rrpypcwcoeaj7gqzliy0oksgx.lambda-url.us-west-2.on.aws/";
     const ADD_ZIP_URL = "https://ibaykpce4noeovznl5taqqqn2a0zeyuv.lambda-url.us-west-2.on.aws/";
 
-    function addZip() {
+        function addZip() {
       const zip = document.getElementById("new-zip").value.trim();
       const days = document.getElementById("add-days").value;
       const status = document.getElementById("add-status");
@@ -87,7 +87,19 @@
           if (result.success) {
             status.textContent = `Added ${result.place_name} (${result.readings_inserted} readings)`;
             status.style.color = "green";
-            // Optionally refresh dropdowns here later
+
+            // Add the new zip to both dropdowns
+            const label = `${result.place_name} (${zip})`;
+            const opt1 = new Option(label, zip);
+            const opt2 = new Option(label, zip);
+            document.getElementById("zip1").add(opt1);
+            document.getElementById("zip2").add(opt2);
+
+            // Make the new zip the left-hand default
+            document.getElementById("zip1").value = zip;
+
+            // Optional: auto-run compare so she sees results immediately
+            // compare();
           } else {
             status.textContent = result.error || "Failed";
             status.style.color = "red";
