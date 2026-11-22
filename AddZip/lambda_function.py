@@ -2,7 +2,6 @@ import json
 import boto3
 import uuid
 import urllib.request
-import urllib.error
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -27,30 +26,7 @@ def http_get(url):
     with urllib.request.urlopen(req, timeout=10) as resp:
         return json.loads(resp.read().decode())
 
-def add_zip_and_backfill(zip_code: str, days: int = 7):
-    zip_url = f"https://api.zippopotam.us/us/{zip_code}"
-    try:
-        z = http_get(zip_url)
-        place = z["places"][0]
-        place_name = f"{place['place name']}, {place['state abbreviation']}"
-        lat = place["latitude"]
-        lon = place["longitude"]
-    except Exception as e:
-        log_error(f"{zip_code}_ZIP_LOOKUP", f"Zippopotam failed: {zip_url} | {str(e)}")
-        return {"success": False, "error": f"Zip lookup failed: {str(e)}"}
-
-    existing = zip_table.get_item(Key={"ZipCode": zip_code, "PlaceName": place_name})
-    if "Item" in existing:
-        return {"success": False, "error": f"Zip {zip_code} already exists"}
-
-    zip_table.put_item(Item={
-        "ZipCode": zip_code,
-        "PlaceName": place_name,
-        "Latitude": lat,
-        "Longitude": lon,
-        "InsertedAt": now_iso()
-    })
-
+def do_backfill(zip_code, place_name, lat, lon, days):
     now = datetime.now(timezone.utc)
     start = (now - timedelta(days=days)).replace(hour=0, minute=0, second=0, microsecond=0)
     current = start
@@ -97,13 +73,11 @@ def add_zip_and_backfill(zip_code: str, days: int = 7):
                 "InsertedAt": now_iso()
             })
             inserted += 1
-
         except Exception as e:
             log_error(zip_dt, f"Weather API failed: {weather_url} | {str(e)}")
 
         current += timedelta(hours=1)
-
-    return {"success": True, "place_name": place_name, "readings_inserted": inserted}
+    return inserted
 
 def lambda_handler(event, context):
     params = event.get("queryStringParameters") or {}
@@ -115,16 +89,57 @@ def lambda_handler(event, context):
         return {
             "statusCode": 400,
             "headers": {"Access-Control-Allow-Origin": "*"},
-            "body": json.dumps({"success": False, "error": "zip query parameter is required"})
+            "body": json.dumps({"success": False, "error": "zip is required"})
         }
 
-    result = add_zip_and_backfill(zip_code, days)
+    # Lookup
+    zip_url = f"https://api.zippopotam.us/us/{zip_code}"
+    try:
+        z = http_get(zip_url)
+        place = z["places"][0]
+        place_name = f"{place['place name']}, {place['state abbreviation']}"
+        lat = place["latitude"]
+        lon = place["longitude"]
+    except Exception as e:
+        log_error(f"{zip_code}_ZIP_LOOKUP", f"Zippopotam failed: {zip_url} | {str(e)}")
+        return {
+            "statusCode": 400,
+            "headers": {"Access-Control-Allow-Origin": "*"},
+            "body": json.dumps({"success": False, "error": f"Zip lookup failed: {str(e)}"})
+        }
+
+    # EXISTS check
+    existing = zip_table.get_item(Key={"ZipCode": zip_code, "PlaceName": place_name})
+    if "Item" in existing:
+        return {
+            "statusCode": 400,
+            "headers": {"Access-Control-Allow-Origin": "*"},
+            "body": json.dumps({"success": False, "error": f"Zip {zip_code} already exists"})
+        }
+
+    # Insert ZipCode immediately
+    zip_table.put_item(Item={
+        "ZipCode": zip_code,
+        "PlaceName": place_name,
+        "Latitude": lat,
+        "Longitude": lon,
+        "InsertedAt": now_iso()
+    })
+
+    # Start backfill (still synchronous for now, but we return fast if we want)
+    # For true async you'd use a second invocation; this version still does the work
+    # but we can raise timeout and accept it.
+    inserted = do_backfill(zip_code, place_name, lat, lon, days)
 
     return {
-        "statusCode": 200 if result["success"] else 400,
+        "statusCode": 200,
         "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*"
         },
-        "body": json.dumps(result)
+        "body": json.dumps({
+            "success": True,
+            "place_name": place_name,
+            "readings_inserted": inserted
+        })
     }

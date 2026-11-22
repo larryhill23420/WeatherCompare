@@ -12,31 +12,17 @@ class DecimalEncoder(json.JSONEncoder):
         return super().default(obj)
 
 def lambda_handler(event, context):
-    try:
-        resp = zip_table.scan()
-        items = resp.get("Items", [])
+    resp = zip_table.scan()
+    items = resp.get("Items", [])
 
-        # Return a clean list sorted by PlaceName
-        zips = [
-            {
-                "zip": item.get("ZipCode"),
-                "placeName": item.get("PlaceName")
-            }
-            for item in items
-        ]
-        zips.sort(key=lambda x: x["placeName"] or "")
+    zips = [
+        {"zip": item.get("ZipCode"), "placeName": item.get("PlaceName")}
+        for item in items
+    ]
+    zips.sort(key=lambda x: x["placeName"] or "")
 
-        return {
-            "statusCode": 200,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"
-            },
-            "body": json.dumps(zips, cls=DecimalEncoder)
-        }
-    except Exception as e:
-        return {
-            "statusCode": 500,
-            "headers": {"Access-Control-Allow-Origin": "*"},
-            "body": json.dumps({"error": str(e)})
-        }
+    return {
+        "statusCode": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": json.dumps(zips, cls=DecimalEncoder)
+    }
