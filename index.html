@@ -17,7 +17,6 @@
 <body>
   <h1>Weather Compare</h1>
 
-  <!-- Add Zip Code -->
   <div class="add-form">
     <h3>Add New Zip Code</h3>
     <input type="text" id="new-zip" placeholder="Zip code" maxlength="5">
@@ -29,7 +28,6 @@
     <span id="add-status"></span>
   </div>
 
-  <!-- Compare -->
   <div class="controls">
     <select id="zip1"></select>
     <select id="zip2"></select>
@@ -77,6 +75,10 @@
           const zip2 = document.getElementById("zip2");
           zip1.innerHTML = "";
           zip2.innerHTML = "";
+          if (!Array.isArray(zips)) {
+            console.error("list-zips did not return an array", zips);
+            return;
+          }
           zips.forEach(z => {
             const label = `${z.placeName} (${z.zip})`;
             zip1.add(new Option(label, z.zip));
@@ -87,7 +89,7 @@
         .catch(err => console.error("Failed to load zips", err));
     }
 
-        function addZip() {
+    function addZip() {
       const zip = document.getElementById("new-zip").value.trim();
       const days = document.getElementById("add-days").value;
       const status = document.getElementById("add-status");
@@ -107,7 +109,6 @@
             status.textContent = result.error || "Failed";
             status.style.color = "red";
           }
-          // Always refresh dropdowns after the call finishes
           setTimeout(loadZips, 1000);
           setTimeout(() => {
             const sel = document.getElementById("zip1");
@@ -138,7 +139,6 @@
 
           rows.forEach(row => {
             const local = fmtTime(row.LocalTime);
-
             tbody.innerHTML += `
               <tr class="zip1">
                 <td>${local}</td>
