@@ -32,14 +32,8 @@
 
   <!-- Compare -->
   <div class="controls">
-    <select id="zip1">
-      <option value="98593">Vader, WA (98593)</option>
-      <option value="19422">Blue Bell, PA (19422)</option>
-    </select>
-    <select id="zip2">
-      <option value="19422">Blue Bell, PA (19422)</option>
-      <option value="98593">Vader, WA (98593)</option>
-    </select>
+    <select id="zip1"></select>
+    <select id="zip2"></select>
     <select id="days">
       <option value="1" selected>1 day</option>
       <option value="2">2 days</option>
@@ -74,8 +68,28 @@
   <script>
     const COMPARE_URL = "https://ocw3et6rrpypcwcoeaj7gqzliy0oksgx.lambda-url.us-west-2.on.aws/";
     const ADD_ZIP_URL = "https://ibaykpce4noeovznl5taqqqn2a0zeyuv.lambda-url.us-west-2.on.aws/";
+    const LIST_ZIPS_URL = "https://isd3lm6m5fk4w2cbjvpezsieey0pjbxe.lambda-url.us-west-2.on.aws/";
 
-        function addZip() {
+    function loadZips() {
+      fetch(LIST_ZIPS_URL)
+        .then(r => r.json())
+        .then(zips => {
+          const zip1 = document.getElementById("zip1");
+          const zip2 = document.getElementById("zip2");
+          zip1.innerHTML = "";
+          zip2.innerHTML = "";
+          zips.forEach(z => {
+            const label = `${z.placeName} (${z.zip})`;
+            zip1.add(new Option(label, z.zip));
+            zip2.add(new Option(label, z.zip));
+          });
+          // Default second dropdown to the other zip if possible
+          if (zips.length > 1) zip2.selectedIndex = 1;
+        })
+        .catch(err => console.error("Failed to load zips", err));
+    }
+
+    function addZip() {
       const zip = document.getElementById("new-zip").value.trim();
       const days = document.getElementById("add-days").value;
       const status = document.getElementById("add-status");
@@ -87,19 +101,8 @@
           if (result.success) {
             status.textContent = `Added ${result.place_name} (${result.readings_inserted} readings)`;
             status.style.color = "green";
-
-            // Add the new zip to both dropdowns
-            const label = `${result.place_name} (${zip})`;
-            const opt1 = new Option(label, zip);
-            const opt2 = new Option(label, zip);
-            document.getElementById("zip1").add(opt1);
-            document.getElementById("zip2").add(opt2);
-
-            // Make the new zip the left-hand default
-            document.getElementById("zip1").value = zip;
-
-            // Optional: auto-run compare so she sees results immediately
-            // compare();
+            loadZips(); // refresh dropdowns
+            document.getElementById("zip1").value = zip; // select the new one on the left
           } else {
             status.textContent = result.error || "Failed";
             status.style.color = "red";
@@ -124,10 +127,7 @@
           const fmt = (n) => (n > 0 ? "+" + n : n);
           rows.forEach(row => {
             tbody.innerHTML += `
-              <tr class="time-header">
-                <td colspan="11">${row.LocalTime || ""}</td>
-              </tr>`;
-            tbody.innerHTML += `
+              <tr class="time-header"><td colspan="11">${row.LocalTime || ""}</td></tr>
               <tr class="zip1">
                 <td></td>
                 <td>${row.ZipCode1 || ""}</td>
@@ -140,8 +140,7 @@
                 <td>${fmt(row.HumidDiff)}</td>
                 <td>${row.Cloud1 ?? ""}</td>
                 <td>${fmt(row.CloudDiff)}</td>
-              </tr>`;
-            tbody.innerHTML += `
+              </tr>
               <tr class="zip2">
                 <td></td>
                 <td>${row.ZipCode2 || ""}</td>
@@ -159,6 +158,9 @@
         })
         .catch(err => console.error(err));
     }
+
+    // Load dropdowns when the page opens
+    loadZips();
   </script>
 </body>
 </html>

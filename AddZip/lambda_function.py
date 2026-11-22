@@ -1,7 +1,8 @@
 import json
 import boto3
-import requests
 import uuid
+import urllib.request
+import urllib.error
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -21,12 +22,15 @@ def log_error(zip_dt: str, description: str):
         "InsertedAt": now_iso()
     })
 
+def http_get(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "WeatherCompare/1.0"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return json.loads(resp.read().decode())
+
 def add_zip_and_backfill(zip_code: str, days: int = 7):
     zip_url = f"https://api.zippopotam.us/us/{zip_code}"
     try:
-        resp = requests.get(zip_url, timeout=10)
-        resp.raise_for_status()
-        z = resp.json()
+        z = http_get(zip_url)
         place = z["places"][0]
         place_name = f"{place['place name']}, {place['state abbreviation']}"
         lat = place["latitude"]
@@ -35,12 +39,10 @@ def add_zip_and_backfill(zip_code: str, days: int = 7):
         log_error(f"{zip_code}_ZIP_LOOKUP", f"Zippopotam failed: {zip_url} | {str(e)}")
         return {"success": False, "error": f"Zip lookup failed: {str(e)}"}
 
-    # EXISTS check
     existing = zip_table.get_item(Key={"ZipCode": zip_code, "PlaceName": place_name})
     if "Item" in existing:
         return {"success": False, "error": f"Zip {zip_code} already exists"}
 
-    # Insert ZipCode
     zip_table.put_item(Item={
         "ZipCode": zip_code,
         "PlaceName": place_name,
@@ -49,7 +51,6 @@ def add_zip_and_backfill(zip_code: str, days: int = 7):
         "InsertedAt": now_iso()
     })
 
-    # Backfill
     now = datetime.now(timezone.utc)
     start = (now - timedelta(days=days)).replace(hour=0, minute=0, second=0, microsecond=0)
     current = start
@@ -70,9 +71,7 @@ def add_zip_and_backfill(zip_code: str, days: int = 7):
         )
 
         try:
-            wresp = requests.get(weather_url, timeout=10)
-            wresp.raise_for_status()
-            w = wresp.json()
+            w = http_get(weather_url)
             hourly = w.get("hourly", {})
             times = hourly.get("time", [])
             temps = hourly.get("temperature_2m", [])
