@@ -24,7 +24,7 @@ def add_zip_and_backfill(zip_code: str):
     # 1. Look up zip
     zip_url = f"https://api.zippopotam.us/us/{zip_code}"
     try:
-        resp = requests.get(zip_url, timeout=10)
+        resp = requests.get(zip_url, timeout=30)
         resp.raise_for_status()
         z = resp.json()
         place = z["places"][0]
@@ -39,7 +39,7 @@ def add_zip_and_backfill(zip_code: str):
     # Timezone lookup
     tz_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m&timezone=auto"
     try:
-        tz_resp = requests.get(tz_url, timeout=10)
+        tz_resp = requests.get(tz_url, timeout=30)
         tz_resp.raise_for_status()
         tz_data = tz_resp.json()
         timezone_name = tz_data.get("timezone", "UTC")
@@ -86,7 +86,7 @@ def add_zip_and_backfill(zip_code: str):
         )
 
         try:
-            wresp = requests.get(weather_url, timeout=10)
+            wresp = requests.get(weather_url, timeout=30)
             wresp.raise_for_status()
             w = wresp.json()
             hourly = w.get("hourly", {})

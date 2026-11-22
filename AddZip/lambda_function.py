@@ -23,7 +23,7 @@ def log_error(zip_dt: str, description: str):
 
 def http_get(url):
     req = urllib.request.Request(url, headers={"User-Agent": "WeatherCompare/1.0"})
-    with urllib.request.urlopen(req, timeout=10) as resp:
+    with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode())
 
 def do_backfill(zip_code, place_name, lat, lon, days):
