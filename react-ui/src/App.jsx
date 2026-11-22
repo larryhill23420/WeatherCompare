@@ -175,12 +175,10 @@ function openAsPdf(zip1, zip2, summary, rows) {
         <select value={days} onChange={e => setDays(e.target.value)}>
           {[1,2,3,4,5,6,7].map(d => <option key={d} value={d}>{d} day{d>1?'s':''}</option>)}
         </select>
-        <button onClick={compare}>Compare Weather</button>
-        <button onClick={() => openAsPdf(selectedZip1, selectedZip2, summaryData, hourlyRows)}
-        disabled={!summaryData}
-      >
-        Open as PDF
-      </button>                           
+        <button onClick={compare}>Compare Weather</button> 
+        <button onClick={() => alert("Button is here")}>
+          Open as PDF
+        </button>                 
       </div>
       
       {summary && (
