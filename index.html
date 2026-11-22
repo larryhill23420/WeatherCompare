@@ -89,10 +89,11 @@
         .catch(err => console.error("Failed to load zips", err));
     }
 
-    function addZip() {
+        function addZip() {
       const zip = document.getElementById("new-zip").value.trim();
       const days = document.getElementById("add-days").value;
       const status = document.getElementById("add-status");
+      const previousZip2 = document.getElementById("zip2").value;  // remember second dropdown
       status.textContent = "Adding... (this can take a minute)";
       status.style.color = "black";
 
@@ -109,13 +110,21 @@
             status.textContent = result.error || "Failed";
             status.style.color = "red";
           }
-          setTimeout(loadZips, 1000);
           setTimeout(() => {
-            const sel = document.getElementById("zip1");
-            if ([...sel.options].some(o => o.value === zip)) {
-              sel.value = zip;
-            }
-          }, 1500);
+            loadZips();
+            setTimeout(() => {
+              // Set first dropdown to the new zip
+              const zip1 = document.getElementById("zip1");
+              if ([...zip1.options].some(o => o.value === zip)) {
+                zip1.value = zip;
+              }
+              // Restore second dropdown to whatever it was before
+              const zip2 = document.getElementById("zip2");
+              if ([...zip2.options].some(o => o.value === previousZip2)) {
+                zip2.value = previousZip2;
+              }
+            }, 600);
+          }, 1000);
         })
         .catch(err => {
           status.textContent = "Request timed out or failed — refreshing list anyway...";
