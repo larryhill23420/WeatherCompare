@@ -11,7 +11,6 @@
     tr.zip2 { background: #f0f0f0; }
     .controls, .add-form { margin-bottom: 1.5rem; }
     select, button, input { padding: 6px 10px; margin-right: 8px; }
-    .time-header { background: #e8e8e8; font-weight: bold; }
     #add-status { margin-left: 10px; font-weight: bold; }
   </style>
 </head>
@@ -68,7 +67,7 @@
   <script>
     const COMPARE_URL = "https://ocw3et6rrpypcwcoeaj7gqzliy0oksgx.lambda-url.us-west-2.on.aws/";
     const ADD_ZIP_URL = "https://ibaykpce4noeovznl5taqqqn2a0zeyuv.lambda-url.us-west-2.on.aws/";
-    const LIST_ZIPS_URL = "https://o262tabg6eggjlckjnr6nmm4tu0bjsru.lambda-url.us-west-2.on.aws/";
+    const LIST_ZIPS_URL = "https://isd3lm6m5fk4w2cbjvpezsieey0pjbxe.lambda-url.us-west-2.on.aws/";
 
     function loadZips() {
       fetch(LIST_ZIPS_URL)
@@ -83,7 +82,6 @@
             zip1.add(new Option(label, z.zip));
             zip2.add(new Option(label, z.zip));
           });
-          // Default second dropdown to the other zip if possible
           if (zips.length > 1) zip2.selectedIndex = 1;
         })
         .catch(err => console.error("Failed to load zips", err));
@@ -93,24 +91,30 @@
       const zip = document.getElementById("new-zip").value.trim();
       const days = document.getElementById("add-days").value;
       const status = document.getElementById("add-status");
-      status.textContent = "Adding...";
+      status.textContent = "Adding... (this can take a minute)";
+      status.style.color = "black";
 
       fetch(`${ADD_ZIP_URL}?zip=${zip}&days=${days}`)
-        .then(r => r.json())
+        .then(r => {
+          if (!r.ok) throw new Error("Gateway timeout or error");
+          return r.json();
+        })
         .then(result => {
           if (result.success) {
             status.textContent = `Added ${result.place_name} (${result.readings_inserted} readings)`;
             status.style.color = "green";
-            loadZips(); // refresh dropdowns
-            document.getElementById("zip1").value = zip; // select the new one on the left
           } else {
             status.textContent = result.error || "Failed";
             status.style.color = "red";
           }
+          loadZips();
+          setTimeout(() => { document.getElementById("zip1").value = zip; }, 500);
         })
         .catch(err => {
-          status.textContent = "Error: " + err;
-          status.style.color = "red";
+          status.textContent = "Request timed out, but zip may have been added. Refreshing list...";
+          status.style.color = "orange";
+          loadZips();
+          setTimeout(() => { document.getElementById("zip1").value = zip; }, 1000);
         });
     }
 
@@ -125,11 +129,14 @@
         .then(r => r.json())
         .then(rows => {
           const fmt = (n) => (n > 0 ? "+" + n : n);
+          const fmtTime = (t) => t ? t.replace("T", " ").slice(0, 16) : "";
+
           rows.forEach(row => {
+            const local = fmtTime(row.LocalTime);
+
             tbody.innerHTML += `
-              <tr class="time-header"><td colspan="11">${row.LocalTime || ""}</td></tr>
               <tr class="zip1">
-                <td></td>
+                <td>${local}</td>
                 <td>${row.ZipCode1 || ""}</td>
                 <td>${row.PlaceName1 || ""}</td>
                 <td>${row.Temp1 ?? ""}</td>
@@ -140,9 +147,10 @@
                 <td>${fmt(row.HumidDiff)}</td>
                 <td>${row.Cloud1 ?? ""}</td>
                 <td>${fmt(row.CloudDiff)}</td>
-              </tr>
+              </tr>`;
+            tbody.innerHTML += `
               <tr class="zip2">
-                <td></td>
+                <td>${local}</td>
                 <td>${row.ZipCode2 || ""}</td>
                 <td>${row.PlaceName2 || ""}</td>
                 <td>${row.Temp2 ?? ""}</td>
@@ -159,7 +167,6 @@
         .catch(err => console.error(err));
     }
 
-    // Load dropdowns when the page opens
     loadZips();
   </script>
 </body>

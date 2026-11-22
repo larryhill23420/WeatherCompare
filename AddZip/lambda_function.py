@@ -88,10 +88,10 @@ def lambda_handler(event, context):
     if not zip_code:
         return {
             "statusCode": 400,
+            "headers": {"Content-Type": "application/json"},
             "body": json.dumps({"success": False, "error": "zip is required"})
         }
 
-    # Lookup
     zip_url = f"https://api.zippopotam.us/us/{zip_code}"
     try:
         z = http_get(zip_url)
@@ -103,38 +103,43 @@ def lambda_handler(event, context):
         log_error(f"{zip_code}_ZIP_LOOKUP", f"Zippopotam failed: {zip_url} | {str(e)}")
         return {
             "statusCode": 400,
-            "headers": {"Access-Control-Allow-Origin": "*"},
+            "headers": {"Content-Type": "application/json"},
             "body": json.dumps({"success": False, "error": f"Zip lookup failed: {str(e)}"})
         }
 
-    # EXISTS check
+    # Simple timezone lookup via Open-Meteo (or hard-code later)
+    tz_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m&timezone=auto"
+    try:
+        tz_data = http_get(tz_url)
+        timezone_name = tz_data.get("timezone", "UTC")
+        utc_offset = tz_data.get("utc_offset_seconds", 0)
+    except:
+        timezone_name = "UTC"
+        utc_offset = 0
+
     existing = zip_table.get_item(Key={"ZipCode": zip_code, "PlaceName": place_name})
     if "Item" in existing:
         return {
             "statusCode": 400,
-            "headers": {"Access-Control-Allow-Origin": "*"},
+            "headers": {"Content-Type": "application/json"},
             "body": json.dumps({"success": False, "error": f"Zip {zip_code} already exists"})
         }
 
-    # Insert ZipCode immediately
     zip_table.put_item(Item={
         "ZipCode": zip_code,
         "PlaceName": place_name,
         "Latitude": lat,
         "Longitude": lon,
+        "TimeZone": timezone_name,
+        "UtcOffsetSeconds": utc_offset,
         "InsertedAt": now_iso()
     })
 
-    # Start backfill (still synchronous for now, but we return fast if we want)
-    # For true async you'd use a second invocation; this version still does the work
-    # but we can raise timeout and accept it.
     inserted = do_backfill(zip_code, place_name, lat, lon, days)
 
     return {
         "statusCode": 200,
-        "headers": {
-            "Content-Type": "application/json"
-        },
+        "headers": {"Content-Type": "application/json"},
         "body": json.dumps({
             "success": True,
             "place_name": place_name,

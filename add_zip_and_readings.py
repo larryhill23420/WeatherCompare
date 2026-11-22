@@ -36,23 +36,37 @@ def add_zip_and_backfill(zip_code: str):
         print(f"Zip lookup failed for {zip_code}")
         return
 
-    # 2. EXISTS check — skip everything if zip already present
+    # Timezone lookup
+    tz_url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m&timezone=auto"
+    try:
+        tz_resp = requests.get(tz_url, timeout=10)
+        tz_resp.raise_for_status()
+        tz_data = tz_resp.json()
+        timezone_name = tz_data.get("timezone", "UTC")
+        utc_offset = tz_data.get("utc_offset_seconds", 0)
+    except:
+        timezone_name = "UTC"
+        utc_offset = 0
+
+    # 2. EXISTS check
     existing = zip_table.get_item(Key={"ZipCode": zip_code, "PlaceName": place_name})
     if "Item" in existing:
-        print(f"Zip {zip_code} already exists — skipping ZipCode and Readings")
+        print(f"Zip {zip_code} already exists — skipping")
         return
 
-    # 3. Insert into ZipCode
+    # 3. Insert into ZipCode (with TimeZone)
     zip_table.put_item(Item={
         "ZipCode": zip_code,
         "PlaceName": place_name,
         "Latitude": lat,
         "Longitude": lon,
+        "TimeZone": timezone_name,
+        "UtcOffsetSeconds": utc_offset,
         "InsertedAt": now_iso()
     })
-    print(f"Inserted ZipCode: {zip_code} - {place_name}")
+    print(f"Inserted ZipCode: {zip_code} - {place_name} ({timezone_name})")
 
-    # 4. Backfill readings for the last 7 days through current hour
+    # 4. Backfill last 7 days
     now = datetime.now(timezone.utc)
     start = (now - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
     current = start
@@ -82,7 +96,7 @@ def add_zip_and_backfill(zip_code: str):
             clouds = hourly.get("cloud_cover", [])
             precips = hourly.get("precipitation", [])
 
-            target = dt_str[:13]  # "2026-11-21T19"
+            target = dt_str[:13]
             idx = next((i for i, t in enumerate(times) if t.startswith(target)), None)
 
             if idx is None or not temps:

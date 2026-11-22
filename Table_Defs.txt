@@ -1,80 +1,32 @@
-{
-  "AttributeDefinitions": [
-    {
-      "AttributeName": "PlaceName",
-      "AttributeType": "S"
-    },
-    {
-      "AttributeName": "ZipCode",
-      "AttributeType": "S"
-    }
-  ],
-  "TableName": "ZipCode",
-  "KeySchema": [
-    {
-      "AttributeName": "ZipCode",
-      "KeyType": "HASH"
-    },
-    {
-      "AttributeName": "PlaceName",
-      "KeyType": "RANGE"
-    }
-  ],
-  --InsertedAt String
-  
-}
+CREATE TABLE ZipCode (
+    ZipCode        VARCHAR(10)  NOT NULL,
+    PlaceName      VARCHAR(100) NOT NULL,
+    Latitude       DECIMAL(9,6),
+    Longitude      DECIMAL(9,6),
+    TimeZone       VARCHAR(50),          -- e.g. 'America/Los_Angeles'
+    UtcOffsetSeconds INT,
+    InsertedAt     VARCHAR(25),
+    PRIMARY KEY (ZipCode, PlaceName)
+);
 
-{
-  "AttributeDefinitions": [
-    {
-      "AttributeName": "DateTime",
-      "AttributeType": "S"
-    },
-    {
-      "AttributeName": "Zip_DateTime",
-      "AttributeType": "S"
-    }
-  ],
-  "TableName": "Reading",
-  "KeySchema": [
-    {
-      "AttributeName": "Zip_DateTime",
-      "KeyType": "HASH"
-    },
-    {
-      "AttributeName": "DateTime",
-      "KeyType": "RANGE"
-    }
-  ],
---Additional Attributes
---Temperature Number Int
---Precipitation Number Float
---Humidity Number Int
---CloudCover Number Int
---InsertedAt String
+CREATE TABLE Reading (
+    Zip_DateTime   VARCHAR(50)  NOT NULL,  -- e.g. '98593_2026-11-21T08:00:00Z'
+    DateTime       VARCHAR(25)  NOT NULL,  -- UTC timestamp
+    ZipCode        VARCHAR(10),
+    PlaceName      VARCHAR(100),
+    Temperature    INT,                    -- °F
+    Precipitation  DECIMAL(5,2),
+    Humidity       INT,
+    CloudCover     INT,
+    InsertedAt     VARCHAR(25),
+    PRIMARY KEY (Zip_DateTime, DateTime)
+);
 
-{
-  "AttributeDefinitions": [
-    {
-      "AttributeName": "UUID",
-      "AttributeType": "S"
-    },
-    {
-      "AttributeName": "Zip_DateTime",
-      "AttributeType": "S"
-    }
-  ],
-  "TableName": "Error",
-  "KeySchema": [
-    {
-      "AttributeName": "UUID",
-      "KeyType": "HASH"
-    },
-    {
-      "AttributeName": "Zip_DateTime",
-      "KeyType": "RANGE"
-    }
-  ],
-  --Additional Attributes
-  --InsertedAt String
-  
+CREATE TABLE Error (
+    UUID           VARCHAR(36)  NOT NULL,
+    Zip_DateTime   VARCHAR(50)  NOT NULL,
+    Description    VARCHAR(1000),
+    InsertedAt     VARCHAR(25),
+    PRIMARY KEY (UUID, Zip_DateTime)
+);
+
