@@ -87,7 +87,7 @@
         .catch(err => console.error("Failed to load zips", err));
     }
 
-    function addZip() {
+        function addZip() {
       const zip = document.getElementById("new-zip").value.trim();
       const days = document.getElementById("add-days").value;
       const status = document.getElementById("add-status");
@@ -96,7 +96,7 @@
 
       fetch(`${ADD_ZIP_URL}?zip=${zip}&days=${days}`)
         .then(r => {
-          if (!r.ok) throw new Error("Gateway timeout or error");
+          if (!r.ok) throw new Error("Request failed");
           return r.json();
         })
         .then(result => {
@@ -107,14 +107,19 @@
             status.textContent = result.error || "Failed";
             status.style.color = "red";
           }
-          loadZips();
-          setTimeout(() => { document.getElementById("zip1").value = zip; }, 500);
+          // Always refresh dropdowns after the call finishes
+          setTimeout(loadZips, 1000);
+          setTimeout(() => {
+            const sel = document.getElementById("zip1");
+            if ([...sel.options].some(o => o.value === zip)) {
+              sel.value = zip;
+            }
+          }, 1500);
         })
         .catch(err => {
-          status.textContent = "Request timed out, but zip may have been added. Refreshing list...";
+          status.textContent = "Request timed out or failed — refreshing list anyway...";
           status.style.color = "orange";
-          loadZips();
-          setTimeout(() => { document.getElementById("zip1").value = zip; }, 1000);
+          setTimeout(loadZips, 2000);
         });
     }
 
