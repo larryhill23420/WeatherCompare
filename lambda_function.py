@@ -89,8 +89,36 @@ def lambda_handler(event, context):
             "Temp2": t2, "Rain2": p2, "Humid2": h2, "Cloud2": c2,
         })
 
+    # --- 7-day summary (always) ---
+    summary_cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def fetch_all(zip_code):
+        resp = reading_table.scan(
+            FilterExpression=Attr("ZipCode").eq(zip_code) & Attr("DateTime").gte(summary_cutoff)
+        )
+        return resp.get("Items", [])
+
+    def summarize(items):
+        if not items:
+            return {"avg_temp": None, "high_temp": None, "low_temp": None, "total_precip": 0, "avg_cloud": None}
+        temps = [float(i.get("Temperature", 0)) for i in items]
+        precips = [float(i.get("Precipitation", 0)) for i in items]
+        clouds = [float(i.get("CloudCover", 0)) for i in items]
+        return {
+            "avg_temp": round(sum(temps) / len(temps), 1),
+            "high_temp": round(max(temps), 1),
+            "low_temp": round(min(temps), 1),
+            "total_precip": round(sum(precips), 2),
+            "avg_cloud": round(sum(clouds) / len(clouds), 1)
+        }
+
+    summary = {
+        "zip1": {"zip": zip1, "place": info1["placeName"], **summarize(fetch_all(zip1))},
+        "zip2": {"zip": zip2, "place": info2["placeName"], **summarize(fetch_all(zip2))}
+    }
+
     return {
         "statusCode": 200,
         "headers": {"Content-Type": "application/json"},
-        "body": json.dumps(rows, cls=DecimalEncoder)
+        "body": json.dumps({"summary": summary, "rows": rows}, cls=DecimalEncoder)
     }

@@ -12,6 +12,7 @@
     .controls, .add-form { margin-bottom: 1.5rem; }
     select, button, input { padding: 6px 10px; margin-right: 8px; }
     #add-status { margin-left: 10px; font-weight: bold; }
+    #summary { margin-bottom: 1.5rem; }
   </style>
 </head>
 <body>
@@ -42,6 +43,8 @@
     </select>
     <button onclick="compare()">Compare Weather</button>
   </div>
+
+  <div id="summary"></div>
 
   <table id="data">
     <thead>
@@ -89,11 +92,11 @@
         .catch(err => console.error("Failed to load zips", err));
     }
 
-        function addZip() {
+    function addZip() {
       const zip = document.getElementById("new-zip").value.trim();
       const days = document.getElementById("add-days").value;
       const status = document.getElementById("add-status");
-      const previousZip2 = document.getElementById("zip2").value;  // remember second dropdown
+      const previousZip2 = document.getElementById("zip2").value;
       status.textContent = "Adding... (this can take a minute)";
       status.style.color = "black";
 
@@ -113,12 +116,10 @@
           setTimeout(() => {
             loadZips();
             setTimeout(() => {
-              // Set first dropdown to the new zip
               const zip1 = document.getElementById("zip1");
               if ([...zip1.options].some(o => o.value === zip)) {
                 zip1.value = zip;
               }
-              // Restore second dropdown to whatever it was before
               const zip2 = document.getElementById("zip2");
               if ([...zip2.options].some(o => o.value === previousZip2)) {
                 zip2.value = previousZip2;
@@ -139,13 +140,32 @@
       const days = document.getElementById("days").value;
       const tbody = document.querySelector("#data tbody");
       tbody.innerHTML = "";
+      document.getElementById("summary").innerHTML = "";
 
       fetch(`${COMPARE_URL}?zip1=${zip1}&zip2=${zip2}&days=${days}`)
         .then(r => r.json())
-        .then(rows => {
+        .then(data => {
           const fmt = (n) => (n > 0 ? "+" + n : n);
           const fmtTime = (t) => t ? t.replace("T", " ").slice(0, 16) : "";
 
+          // 7-day summary
+          if (data.summary) {
+            const s = data.summary;
+            document.getElementById("summary").innerHTML = `
+              <h3>7-Day Summary</h3>
+              <table>
+                <tr><th></th><th>${s.zip1.place} (${s.zip1.zip})</th><th>${s.zip2.place} (${s.zip2.zip})</th></tr>
+                <tr><td>Avg Temp</td><td>${s.zip1.avg_temp ?? "–"}</td><td>${s.zip2.avg_temp ?? "–"}</td></tr>
+                <tr><td>High Temp</td><td>${s.zip1.high_temp ?? "–"}</td><td>${s.zip2.high_temp ?? "–"}</td></tr>
+                <tr><td>Low Temp</td><td>${s.zip1.low_temp ?? "–"}</td><td>${s.zip2.low_temp ?? "–"}</td></tr>
+                <tr><td>Total Precip</td><td>${s.zip1.total_precip ?? "–"}</td><td>${s.zip2.total_precip ?? "–"}</td></tr>
+                <tr><td>Avg Cloud Cover</td><td>${s.zip1.avg_cloud ?? "–"}</td><td>${s.zip2.avg_cloud ?? "–"}</td></tr>
+              </table>
+            `;
+          }
+
+          // Hourly rows
+          const rows = data.rows || data;
           rows.forEach(row => {
             const local = fmtTime(row.LocalTime);
             tbody.innerHTML += `
