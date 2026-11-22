@@ -2,6 +2,9 @@
 <html>
 <head>
   <title>Weather Compare</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     body { font-family: system-ui, sans-serif; margin: 2rem; }
     table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
@@ -12,196 +15,173 @@
     .controls, .add-form { margin-bottom: 1.5rem; }
     select, button, input { padding: 6px 10px; margin-right: 8px; }
     #add-status { margin-left: 10px; font-weight: bold; }
-    #summary { margin-bottom: 1.5rem; }
   </style>
 </head>
 <body>
-  <h1>Weather Compare</h1>
+  <div id="root"></div>
 
-  <div class="add-form">
-    <h3>Add New Zip Code</h3>
-    <input type="text" id="new-zip" placeholder="Zip code" maxlength="5">
-    <select id="add-days">
-      <option value="1">1 day</option>
-      <option value="7" selected>7 days</option>
-    </select>
-    <button onclick="addZip()">Add Zip Code</button>
-    <span id="add-status"></span>
-  </div>
-
-  <div class="controls">
-    <select id="zip1"></select>
-    <select id="zip2"></select>
-    <select id="days">
-      <option value="1" selected>1 day</option>
-      <option value="2">2 days</option>
-      <option value="3">3 days</option>
-      <option value="4">4 days</option>
-      <option value="5">5 days</option>
-      <option value="6">6 days</option>
-      <option value="7">7 days</option>
-    </select>
-    <button onclick="compare()">Compare Weather</button>
-  </div>
-
-  <div id="summary"></div>
-
-  <table id="data">
-    <thead>
-      <tr>
-        <th>Local Time</th>
-        <th>Zip</th>
-        <th>Place Name</th>
-        <th>Temp</th>
-        <th>Temp Diff</th>
-        <th>Rain</th>
-        <th>Rain Diff</th>
-        <th>Humid</th>
-        <th>Humid Diff</th>
-        <th>Cloud</th>
-        <th>Cloud Diff</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <script>
+  <script type="text/babel">
     const COMPARE_URL = "https://ocw3et6rrpypcwcoeaj7gqzliy0oksgx.lambda-url.us-west-2.on.aws/";
     const ADD_ZIP_URL = "https://ibaykpce4noeovznl5taqqqn2a0zeyuv.lambda-url.us-west-2.on.aws/";
     const LIST_ZIPS_URL = "https://o262tabg6eggjlckjnr6nmm4tu0bjsru.lambda-url.us-west-2.on.aws/";
 
-    function loadZips() {
-      fetch(LIST_ZIPS_URL)
-        .then(r => r.json())
-        .then(zips => {
-          const zip1 = document.getElementById("zip1");
-          const zip2 = document.getElementById("zip2");
-          zip1.innerHTML = "";
-          zip2.innerHTML = "";
-          if (!Array.isArray(zips)) {
-            console.error("list-zips did not return an array", zips);
-            return;
-          }
-          zips.forEach(z => {
-            const label = `${z.placeName} (${z.zip})`;
-            zip1.add(new Option(label, z.zip));
-            zip2.add(new Option(label, z.zip));
-          });
-          if (zips.length > 1) zip2.selectedIndex = 1;
-        })
-        .catch(err => console.error("Failed to load zips", err));
-    }
+    function App() {
+      const [zips, setZips] = React.useState([]);
+      const [zip1, setZip1] = React.useState("");
+      const [zip2, setZip2] = React.useState("");
+      const [days, setDays] = React.useState("1");
+      const [addZipCode, setAddZipCode] = React.useState("");
+      const [addDays, setAddDays] = React.useState("7");
+      const [addStatus, setAddStatus] = React.useState("");
+      const [summary, setSummary] = React.useState(null);
+      const [rows, setRows] = React.useState([]);
 
-    function addZip() {
-      const zip = document.getElementById("new-zip").value.trim();
-      const days = document.getElementById("add-days").value;
-      const status = document.getElementById("add-status");
-      const previousZip2 = document.getElementById("zip2").value;
-      status.textContent = "Adding... (this can take a minute)";
-      status.style.color = "black";
+      React.useEffect(() => { loadZips(); }, []);
 
-      fetch(`${ADD_ZIP_URL}?zip=${zip}&days=${days}`)
-        .then(r => {
-          if (!r.ok) throw new Error("Request failed");
-          return r.json();
-        })
-        .then(result => {
-          if (result.success) {
-            status.textContent = `Added ${result.place_name} (${result.readings_inserted} readings)`;
-            status.style.color = "green";
-          } else {
-            status.textContent = result.error || "Failed";
-            status.style.color = "red";
-          }
-          setTimeout(() => {
-            loadZips();
+      function loadZips() {
+        fetch(LIST_ZIPS_URL)
+          .then(r => r.json())
+          .then(data => {
+            if (!Array.isArray(data)) return;
+            setZips(data);
+            if (data.length > 0 && !zip1) setZip1(data[0].zip);
+            if (data.length > 1 && !zip2) setZip2(data[1].zip);
+          })
+          .catch(console.error);
+      }
+
+      function handleAddZip() {
+        setAddStatus("Adding... (this can take a minute)");
+        const previousZip2 = zip2;
+        fetch(`${ADD_ZIP_URL}?zip=${addZipCode}&days=${addDays}`)
+          .then(r => r.json())
+          .then(result => {
+            if (result.success) {
+              setAddStatus(`Added ${result.place_name} (${result.readings_inserted} readings)`);
+            } else {
+              setAddStatus(result.error || "Failed");
+            }
             setTimeout(() => {
-              const zip1 = document.getElementById("zip1");
-              if ([...zip1.options].some(o => o.value === zip)) {
-                zip1.value = zip;
-              }
-              const zip2 = document.getElementById("zip2");
-              if ([...zip2.options].some(o => o.value === previousZip2)) {
-                zip2.value = previousZip2;
-              }
-            }, 600);
-          }, 1000);
-        })
-        .catch(err => {
-          status.textContent = "Request timed out or failed — refreshing list anyway...";
-          status.style.color = "orange";
-          setTimeout(loadZips, 2000);
-        });
-    }
+              loadZips();
+              setTimeout(() => {
+                setZip1(addZipCode);
+                if (previousZip2) setZip2(previousZip2);
+              }, 500);
+            }, 1000);
+          })
+          .catch(() => {
+            setAddStatus("Request timed out — refreshing list...");
+            setTimeout(loadZips, 2000);
+          });
+      }
 
-    function compare() {
-      const zip1 = document.getElementById("zip1").value;
-      const zip2 = document.getElementById("zip2").value;
-      const days = document.getElementById("days").value;
-      const tbody = document.querySelector("#data tbody");
-      tbody.innerHTML = "";
-      document.getElementById("summary").innerHTML = "";
+      function handleCompare() {
+        setSummary(null);
+        setRows([]);
+        fetch(`${COMPARE_URL}?zip1=${zip1}&zip2=${zip2}&days=${days}`)
+          .then(r => r.json())
+          .then(data => {
+            setSummary(data.summary || null);
+            setRows(data.rows || data || []);
+          })
+          .catch(console.error);
+      }
 
-      fetch(`${COMPARE_URL}?zip1=${zip1}&zip2=${zip2}&days=${days}`)
-        .then(r => r.json())
-        .then(data => {
-          const fmt = (n) => (n > 0 ? "+" + n : n);
-          const fmtTime = (t) => t ? t.replace("T", " ").slice(0, 16) : "";
+      const fmt = (n) => (n > 0 ? "+" + n : n);
+      const fmtTime = (t) => t ? t.replace("T", " ").slice(0, 16) : "";
 
-          // 7-day summary
-          if (data.summary) {
-            const s = data.summary;
-            document.getElementById("summary").innerHTML = `
+      return (
+        <div>
+          <h1>Weather Compare</h1>
+
+          <div className="add-form">
+            <h3>Add New Zip Code</h3>
+            <input value={addZipCode} onChange={e => setAddZipCode(e.target.value)} placeholder="Zip code" maxLength={5} />
+            <select value={addDays} onChange={e => setAddDays(e.target.value)}>
+              <option value="1">1 day</option>
+              <option value="7">7 days</option>
+            </select>
+            <button onClick={handleAddZip}>Add Zip Code</button>
+            <span id="add-status">{addStatus}</span>
+          </div>
+
+          <div className="controls">
+            <select value={zip1} onChange={e => setZip1(e.target.value)}>
+              {zips.map(z => <option key={z.zip} value={z.zip}>{z.placeName} ({z.zip})</option>)}
+            </select>
+            <select value={zip2} onChange={e => setZip2(e.target.value)}>
+              {zips.map(z => <option key={z.zip} value={z.zip}>{z.placeName} ({z.zip})</option>)}
+            </select>
+            <select value={days} onChange={e => setDays(e.target.value)}>
+              {[1,2,3,4,5,6,7].map(d => <option key={d} value={d}>{d} day{d>1?"s":""}</option>)}
+            </select>
+            <button onClick={handleCompare}>Compare Weather</button>
+          </div>
+
+          {summary && (
+            <div>
               <h3>7-Day Summary</h3>
               <table>
-                <tr><th></th><th>${s.zip1.place} (${s.zip1.zip})</th><th>${s.zip2.place} (${s.zip2.zip})</th></tr>
-                <tr><td>Avg Temp</td><td>${s.zip1.avg_temp ?? "–"}</td><td>${s.zip2.avg_temp ?? "–"}</td></tr>
-                <tr><td>High Temp</td><td>${s.zip1.high_temp ?? "–"}</td><td>${s.zip2.high_temp ?? "–"}</td></tr>
-                <tr><td>Low Temp</td><td>${s.zip1.low_temp ?? "–"}</td><td>${s.zip2.low_temp ?? "–"}</td></tr>
-                <tr><td>Total Precip</td><td>${s.zip1.total_precip ?? "–"}</td><td>${s.zip2.total_precip ?? "–"}</td></tr>
-                <tr><td>Avg Cloud Cover</td><td>${s.zip1.avg_cloud ?? "–"}</td><td>${s.zip2.avg_cloud ?? "–"}</td></tr>
+                <thead>
+                  <tr><th></th><th>{summary.zip1.place} ({summary.zip1.zip})</th><th>{summary.zip2.place} ({summary.zip2.zip})</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Avg Temp</td><td>{summary.zip1.avg_temp ?? "–"}</td><td>{summary.zip2.avg_temp ?? "–"}</td></tr>
+                  <tr><td>High Temp</td><td>{summary.zip1.high_temp ?? "–"}</td><td>{summary.zip2.high_temp ?? "–"}</td></tr>
+                  <tr><td>Low Temp</td><td>{summary.zip1.low_temp ?? "–"}</td><td>{summary.zip2.low_temp ?? "–"}</td></tr>
+                  <tr><td>Total Precip</td><td>{summary.zip1.total_precip ?? "–"}</td><td>{summary.zip2.total_precip ?? "–"}</td></tr>
+                  <tr><td>Avg Cloud Cover</td><td>{summary.zip1.avg_cloud ?? "–"}</td><td>{summary.zip2.avg_cloud ?? "–"}</td></tr>
+                </tbody>
               </table>
-            `;
-          }
+            </div>
+          )}
 
-          // Hourly rows
-          const rows = data.rows || data;
-          rows.forEach(row => {
-            const local = fmtTime(row.LocalTime);
-            tbody.innerHTML += `
-              <tr class="zip1">
-                <td>${local}</td>
-                <td>${row.ZipCode1 || ""}</td>
-                <td>${row.PlaceName1 || ""}</td>
-                <td>${row.Temp1 ?? ""}</td>
-                <td>${fmt(row.TempDiff)}</td>
-                <td>${row.Rain1 ?? ""}</td>
-                <td>${fmt(row.RainDiff)}</td>
-                <td>${row.Humid1 ?? ""}</td>
-                <td>${fmt(row.HumidDiff)}</td>
-                <td>${row.Cloud1 ?? ""}</td>
-                <td>${fmt(row.CloudDiff)}</td>
-              </tr>`;
-            tbody.innerHTML += `
-              <tr class="zip2">
-                <td>${local}</td>
-                <td>${row.ZipCode2 || ""}</td>
-                <td>${row.PlaceName2 || ""}</td>
-                <td>${row.Temp2 ?? ""}</td>
-                <td>${fmt(-row.TempDiff)}</td>
-                <td>${row.Rain2 ?? ""}</td>
-                <td>${fmt(-row.RainDiff)}</td>
-                <td>${row.Humid2 ?? ""}</td>
-                <td>${fmt(-row.HumidDiff)}</td>
-                <td>${row.Cloud2 ?? ""}</td>
-                <td>${fmt(-row.CloudDiff)}</td>
-              </tr>`;
-          });
-        })
-        .catch(err => console.error(err));
+          <table>
+            <thead>
+              <tr>
+                <th>Local Time</th><th>Zip</th><th>Place Name</th><th>Temp</th><th>Temp Diff</th>
+                <th>Rain</th><th>Rain Diff</th><th>Humid</th><th>Humid Diff</th><th>Cloud</th><th>Cloud Diff</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <React.Fragment key={i}>
+                  <tr className="zip1">
+                    <td>{fmtTime(row.LocalTime)}</td>
+                    <td>{row.ZipCode1}</td>
+                    <td>{row.PlaceName1}</td>
+                    <td>{row.Temp1 ?? ""}</td>
+                    <td>{fmt(row.TempDiff)}</td>
+                    <td>{row.Rain1 ?? ""}</td>
+                    <td>{fmt(row.RainDiff)}</td>
+                    <td>{row.Humid1 ?? ""}</td>
+                    <td>{fmt(row.HumidDiff)}</td>
+                    <td>{row.Cloud1 ?? ""}</td>
+                    <td>{fmt(row.CloudDiff)}</td>
+                  </tr>
+                  <tr className="zip2">
+                    <td>{fmtTime(row.LocalTime)}</td>
+                    <td>{row.ZipCode2}</td>
+                    <td>{row.PlaceName2}</td>
+                    <td>{row.Temp2 ?? ""}</td>
+                    <td>{fmt(-row.TempDiff)}</td>
+                    <td>{row.Rain2 ?? ""}</td>
+                    <td>{fmt(-row.RainDiff)}</td>
+                    <td>{row.Humid2 ?? ""}</td>
+                    <td>{fmt(-row.HumidDiff)}</td>
+                    <td>{row.Cloud2 ?? ""}</td>
+                    <td>{fmt(-row.CloudDiff)}</td>
+                  </tr>
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
     }
 
-    loadZips();
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
   </script>
 </body>
 </html>
