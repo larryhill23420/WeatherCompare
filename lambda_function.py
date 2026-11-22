@@ -11,6 +11,7 @@ zip_table = dynamodb.Table("ZipCode")
 OFFSETS = {
     "98593": -8,   # Vader, WA
     "19422": -5,   # Blue Bell, PA
+    "98031": -8,   # Kent, WA (same zone as Vader for now)
 }
 
 class DecimalEncoder(json.JSONEncoder):
@@ -34,12 +35,12 @@ def lambda_handler(event, context):
     zip1 = params.get("zip1")
     zip2 = params.get("zip2")
     days = int(params.get("days", "1"))
-    days = max(1, min(days, 7))  # clamp 1-7
+    days = max(1, min(days, 7))
 
     if not zip1 or not zip2:
         return {
             "statusCode": 400,
-            "headers": {"Access-Control-Allow-Origin": "*"},
+            "headers": {"Content-Type": "application/json"},
             "body": json.dumps({"error": "zip1 and zip2 are required"})
         }
 
@@ -61,7 +62,6 @@ def lambda_handler(event, context):
     place1 = get_place_name(zip1)
     place2 = get_place_name(zip2)
 
-    # Only keep times where BOTH zips have data
     common_times = sorted(set(data1.keys()) & set(data2.keys()))
 
     rows = []
@@ -91,9 +91,6 @@ def lambda_handler(event, context):
 
     return {
         "statusCode": 200,
-        "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-        },
+        "headers": {"Content-Type": "application/json"},
         "body": json.dumps(rows, cls=DecimalEncoder)
     }

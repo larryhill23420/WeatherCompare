@@ -88,7 +88,6 @@ def lambda_handler(event, context):
     if not zip_code:
         return {
             "statusCode": 400,
-            "headers": {"Access-Control-Allow-Origin": "*"},
             "body": json.dumps({"success": False, "error": "zip is required"})
         }
 
@@ -134,8 +133,7 @@ def lambda_handler(event, context):
     return {
         "statusCode": 200,
         "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
+            "Content-Type": "application/json"
         },
         "body": json.dumps({
             "success": True,
