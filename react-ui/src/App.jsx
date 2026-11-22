@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const COMPARE_URL = "https://ocw3et6rrpypcwcoeaj7gqzliy0oksgx.lambda-url.us-west-2.on.aws/"
 const ADD_ZIP_URL = "https://ibaykpce4noeovznl5taqqqn2a0zeyuv.lambda-url.us-west-2.on.aws/"
@@ -121,6 +123,42 @@ function App() {
 
 
 
+function openAsPdf(zip1, zip2, summary, rows) {
+  const doc = new jsPDF();
+
+  doc.setFontSize(16);
+  doc.text(`Weather Comparison: ${zip1} vs ${zip2}`, 14, 20);
+
+  // Summary table
+  autoTable(doc, {
+    startY: 30,
+    head: [["Metric", zip1, zip2, "Difference"]],
+    body: [
+      ["Avg Temp (°F)", summary.avg1, summary.avg2, summary.diffAvg],
+      ["High Temp (°F)", summary.high1, summary.high2, summary.diffHigh],
+      ["Low Temp (°F)", summary.low1, summary.low2, summary.diffLow],
+      ["Total Precip (in)", summary.precip1, summary.precip2, summary.diffPrecip],
+      ["Avg Cloud Cover (%)", summary.cloud1, summary.cloud2, summary.diffCloud],
+    ],
+  });
+
+  // Hourly table
+  autoTable(doc, {
+    startY: doc.lastAutoTable.finalY + 10,
+    head: [["Local Time", `${zip1} Temp`, `${zip2} Temp`, "Diff", "Precip 1", "Precip 2"]],
+    body: rows.map(r => [
+      r.localTime,
+      r.temp1,
+      r.temp2,
+      r.diff,
+      r.precip1,
+      r.precip2,
+    ]),
+  });
+
+  doc.save(`weather-compare-${zip1}-vs-${zip2}.pdf`);
+}
+
   return (
     <div className="app">
       <h1>Weather Compare</h1>
@@ -138,8 +176,13 @@ function App() {
           {[1,2,3,4,5,6,7].map(d => <option key={d} value={d}>{d} day{d>1?'s':''}</option>)}
         </select>
         <button onClick={compare}>Compare Weather</button>
+        <button onClick={() => openAsPdf(selectedZip1, selectedZip2, summaryData, hourlyRows)}
+        disabled={!summaryData}
+      >
+        Open as PDF
+      </button>                           
       </div>
-
+      
       {summary && (
         <div className="summary">
           <h3>7-Day Summary</h3>
