@@ -76,6 +76,7 @@ Discussed DocumentDB/OpenSearch design notes.
 
 Added a minimal Spring Boot service that proxies the compare endpoint (calls the existing Lambda Function URL and returns JSON). 
 Demonstrates Java / Spring Boot REST integration in front of the Python/Lambda pipeline.
+Ingest was not running over night. Create Event Bridge in AWS to run at the top of each hour.
 
 ---
 
