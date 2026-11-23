@@ -39,16 +39,43 @@ Strong AWS experience is a must (make sure you are able to speak on this at any 
 ## Day-by-Day Build Summary
 
 **Friday, Nov 20 (Day 1)**  
-Mapped 20+ years of SQL experience to AWS for the interview. Designed and created the first DynamoDB table. Built the initial Python weather ingest script. Dockerized the pipeline. Added Kafka producer + consumer with Docker Compose. Got hourly data flowing into DynamoDB. Set up the GitHub repo and a basic GitHub Pages site. Started Lambda Function URL work.
+
+Mapped 20+ years of SQL experience to AWS for the interview. 
+Designed and created the first DynamoDB table. 
+Built the initial Python weather ingest script. 
+Dockerized the pipeline. 
+Added Kafka producer + consumer with Docker Compose. 
+Got hourly data flowing into DynamoDB. 
+Set up the GitHub repo and a basic GitHub Pages site. 
+Started Lambda Function URL work.
 
 **Saturday, Nov 21 (Day 2)**  
-Redesigned tables (ZipCode, Reading, Error) with proper keys and denormalization. Wrote the full backfill script with error handling and EXISTS checks. Updated Kafka producer/consumer for the new schema. Built the compare Lambda (local-time alignment, days parameter, differences). Built add-zip and list-zips Lambdas. Created the interactive HTML UI (dropdowns, add zip, compare, summary). Fixed CORS, timeouts, and import issues. Added TimeZone support. Moved ingest to Kubernetes (kind + manifests). Added Terraform for the tables + `rebuild.ps1`. Confirmed end-to-end flow.
+
+Redesigned tables (ZipCode, Reading, Error) with proper keys and denormalization. 
+Wrote the full backfill script with error handling and EXISTS checks. 
+Updated Kafka producer/consumer for the new schema. 
+Built the compare Lambda (local-time alignment, days parameter, differences). 
+Built add-zip and list-zips Lambdas. 
+Created the interactive HTML UI (dropdowns, add zip, compare, summary). 
+Fixed CORS, timeouts, and import issues. 
+Added TimeZone support. 
+Moved ingest to Kubernetes (kind + manifests). 
+Added Terraform for the tables + `rebuild.ps1`. 
+Confirmed end-to-end flow.
 
 **Sunday, Nov 22 (Day 3)**  
-Rebuilt tables with TimeZone via Terraform. Converted the UI to a real React (Vite) app. Added Add Zip modal + improved styling. Deployed the React app to AWS Amplify. Wrote the initial JD-to-code mapping. Discussed DocumentDB/OpenSearch design notes.
+
+Rebuilt tables with TimeZone via Terraform. 
+Converted the UI to a real React (Vite) app. 
+Added Add Zip modal + improved styling. 
+Deployed the React app to AWS Amplify. 
+Wrote the initial JD-to-code mapping. 
+Discussed DocumentDB/OpenSearch design notes.
 
 **Monday, Nov 23 (Day 4)**  
-Added a minimal Spring Boot service that proxies the compare endpoint (calls the existing Lambda Function URL and returns JSON). Demonstrates Java / Spring Boot REST integration in front of the Python/Lambda pipeline.
+
+Added a minimal Spring Boot service that proxies the compare endpoint (calls the existing Lambda Function URL and returns JSON). 
+Demonstrates Java / Spring Boot REST integration in front of the Python/Lambda pipeline.
 
 ---
 
