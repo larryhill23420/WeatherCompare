@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import './App.css'
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 
 const COMPARE_URL = "https://ocw3et6rrpypcwcoeaj7gqzliy0oksgx.lambda-url.us-west-2.on.aws/"
 const ADD_ZIP_URL = "https://ibaykpce4noeovznl5taqqqn2a0zeyuv.lambda-url.us-west-2.on.aws/"
@@ -14,7 +14,6 @@ function App() {
   const [days, setDays] = useState('1')
   const [summary, setSummary] = useState(null)
   const [data, setData] = useState([])
-  const [sorting, setSorting] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [newZip, setNewZip] = useState('')
   const [addDays, setAddDays] = useState('7')
@@ -71,7 +70,6 @@ function App() {
       .then(r => r.json())
       .then(res => {
         setSummary(res.summary)
-        // Flatten into one row per zip for the grid
         const flat = []
         ;(res.rows || []).forEach(r => {
           flat.push({
@@ -107,57 +105,40 @@ function App() {
       })
   }
 
-  const columns = [
-    { accessorKey: 'localTime', header: 'Local Time' },
-    { accessorKey: 'zip', header: 'Zip' },
-    { accessorKey: 'place', header: 'Place Name' },
-    { accessorKey: 'temp', header: 'Temp' },
-    { accessorKey: 'tempDiff', header: 'Temp Diff', cell: info => info.getValue() > 0 ? `+${info.getValue()}` : info.getValue() },
-    { accessorKey: 'rain', header: 'Rain' },
-    { accessorKey: 'rainDiff', header: 'Rain Diff', cell: info => info.getValue() > 0 ? `+${info.getValue()}` : info.getValue() },
-    { accessorKey: 'humid', header: 'Humid' },
-    { accessorKey: 'humidDiff', header: 'Humid Diff', cell: info => info.getValue() > 0 ? `+${info.getValue()}` : info.getValue() },
-    { accessorKey: 'cloud', header: 'Cloud' },
-    { accessorKey: 'cloudDiff', header: 'Cloud Diff', cell: info => info.getValue() > 0 ? `+${info.getValue()}` : info.getValue() },
-  ]
+  function openAsPdf() {
+    if (!summary) return
+    const doc = new jsPDF()
+    doc.setFontSize(16)
+    doc.text(`Weather Comparison: ${zip1} vs ${zip2}`, 14, 20)
 
+    autoTable(doc, {
+      startY: 30,
+      head: [['Metric', zip1, zip2]],
+      body: [
+        ['Avg Temp', summary.zip1?.avg_temp, summary.zip2?.avg_temp],
+        ['High Temp', summary.zip1?.high_temp, summary.zip2?.high_temp],
+        ['Low Temp', summary.zip1?.low_temp, summary.zip2?.low_temp],
+        ['Total Precip', summary.zip1?.total_precip, summary.zip2?.total_precip],
+        ['Avg Cloud', summary.zip1?.avg_cloud, summary.zip2?.avg_cloud],
+      ],
+    })
 
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 10,
+      head: [['Local Time', 'Zip', 'Place', 'Temp', 'Temp Diff', 'Rain', 'Rain Diff']],
+      body: data.map(r => [
+        r.localTime,
+        r.zip,
+        r.place,
+        r.temp,
+        r.tempDiff > 0 ? `+${r.tempDiff}` : r.tempDiff,
+        r.rain,
+        r.rainDiff > 0 ? `+${r.rainDiff}` : r.rainDiff,
+      ]),
+    })
 
-function openAsPdf(zip1, zip2, summary, rows) {
-  const doc = new jsPDF();
-
-  doc.setFontSize(16);
-  doc.text(`Weather Comparison: ${zip1} vs ${zip2}`, 14, 20);
-
-  // Summary table
-  autoTable(doc, {
-    startY: 30,
-    head: [["Metric", zip1, zip2, "Difference"]],
-    body: [
-      ["Avg Temp (°F)", summary.avg1, summary.avg2, summary.diffAvg],
-      ["High Temp (°F)", summary.high1, summary.high2, summary.diffHigh],
-      ["Low Temp (°F)", summary.low1, summary.low2, summary.diffLow],
-      ["Total Precip (in)", summary.precip1, summary.precip2, summary.diffPrecip],
-      ["Avg Cloud Cover (%)", summary.cloud1, summary.cloud2, summary.diffCloud],
-    ],
-  });
-
-  // Hourly table
-  autoTable(doc, {
-    startY: doc.lastAutoTable.finalY + 10,
-    head: [["Local Time", `${zip1} Temp`, `${zip2} Temp`, "Diff", "Precip 1", "Precip 2"]],
-    body: rows.map(r => [
-      r.localTime,
-      r.temp1,
-      r.temp2,
-      r.diff,
-      r.precip1,
-      r.precip2,
-    ]),
-  });
-
-  doc.save(`weather-compare-${zip1}-vs-${zip2}.pdf`);
-}
+    doc.save(`weather-compare-${zip1}-vs-${zip2}.pdf`)
+  }
 
   return (
     <div className="app">
@@ -175,12 +156,10 @@ function openAsPdf(zip1, zip2, summary, rows) {
         <select value={days} onChange={e => setDays(e.target.value)}>
           {[1,2,3,4,5,6,7].map(d => <option key={d} value={d}>{d} day{d>1?'s':''}</option>)}
         </select>
-        <button onClick={compare}>Compare Weather</button> 
-        <button onClick={() => alert("Button is here")}>
-          Open as PDF
-        </button>                 
+        <button onClick={compare}>Compare Weather</button>
+        <button onClick={openAsPdf} disabled={!summary}>Open as PDF</button>
       </div>
-      
+
       {summary && (
         <div className="summary">
           <h3>7-Day Summary</h3>
@@ -199,7 +178,7 @@ function openAsPdf(zip1, zip2, summary, rows) {
         </div>
       )}
 
-            <div className="table-wrap">
+      <div className="table-wrap">
         <table>
           <thead>
             <tr>
